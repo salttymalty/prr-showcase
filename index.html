@@ -598,302 +598,6 @@ footer {
   </header>
 
   <!-- ====================================================
-       THE PROBLEM
-       ==================================================== -->
-  <h2>The Problem</h2>
-  <p>
-    Every production change carries risk. Most teams manage that risk through
-    checklists, peer review, and institutional knowledge. But checklists get stale,
-    reviewers get fatigued, and knowledge walks out the door.
-  </p>
-  <p>
-    The PRR Swarm replaces ad-hoc review with a structured, parallel analysis
-    pipeline. It takes a branch, PR, or diff and produces everything an on-call
-    engineer needs to deploy confidently and recover gracefully.
-  </p>
-
-  <!-- ====================================================
-       ARCHITECTURE
-       ==================================================== -->
-  <h2>Architecture: 3-Gate Pipeline</h2>
-  <p>
-    The pipeline enforces <strong>separation of duties</strong> across three gates.
-    Each gate must complete before the next begins. No agent can self-certify.
-  </p>
-
-  <div class="diagram-wrap">
-    <pre>
-              GATE 1: KNOW (parallel, read-only)
-              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
-  diff.patch ─┤ Blast Radius│  │   Change     │  │    SLA     │
-  files.txt  ─┤   Mapper    │  │  Classifier  │  │  Scanner   │
-              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
-                     │                │                │
-                     ▼                ▼                ▼
-           blast-radius.md  classification.json  sla-exposure.md
-                     │                │                │
-              GATE 2: PLAN (parallel, blocked by Gate 1)
-              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
-              │  Rollback   │  │ Observability│  │  Failure   │
-              │ Strategist  │  │   Auditor    │  │  Analyst   │
-              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
-                     │                │                │
-                     ▼                ▼                ▼
-           rollback-plan.md     obs-gaps.md      fmea-matrix.md
-                     │                │                │
-              GATE 3: PROVE (parallel then sequential)
-              ┌─────────────┐                   ┌────────────┐
-              │   Runbook   │◄──── all ────────▶│   Chaos    │
-              │  Generator  │    outputs        │   Writer   │
-              └──────┬──────┘                   └─────┬──────┘
-                     │                                │
-                     └────────────┬───────────────────┘
-                                  ▼
-                           ┌────────────┐
-                           │  Validator  │  ← VETO AUTHORITY
-                           └──────┬─────┘
-                                  ▼
-                          prr-verdict.json
-                          PASS  or  FAIL</pre>
-  </div>
-
-  <!-- ====================================================
-       SEPARATION OF DUTIES
-       ==================================================== -->
-  <h2>Separation of Duties</h2>
-  <p>
-    The architecture enforces a principle borrowed from financial controls:
-    the person who writes the check cannot also approve it. In the PRR Swarm,
-    agents that discover cannot modify, and the validator that judges cannot fix.
-  </p>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Role</th>
-        <th>Can Read</th>
-        <th>Can Write</th>
-        <th>Can Veto</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Gate 1: Mappers</td><td>Yes</td><td>No</td><td>No</td></tr>
-      <tr><td>Gate 2: Planners</td><td>Yes</td><td>Yes</td><td>No</td></tr>
-      <tr><td>Gate 3: Synthesizers</td><td>Yes</td><td>Yes</td><td>No</td></tr>
-      <tr><td>Validator</td><td>Yes</td><td>No</td><td><strong>Yes</strong></td></tr>
-    </tbody>
-  </table>
-
-  <!-- ====================================================
-       GATE 1: KNOW
-       ==================================================== -->
-  <div class="gate-section gate-know">
-    <div class="gate-label">Gate 1 — KNOW</div>
-    <h3>Discover What Changed</h3>
-    <p>Three read-only agents run in parallel, each analyzing the diff from a different angle. They cannot modify the codebase — only observe.</p>
-
-    <div class="agent-grid">
-      <div class="agent-card">
-        <div class="agent-name">Blast Radius Mapper</div>
-        <span class="tag tag-discover">read-only</span>
-        <span class="tag tag-model">haiku</span>
-        <p class="agent-desc">Traces every changed file to its L2 dependencies — what calls it, what it calls, what data it touches.</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">Change Classifier</div>
-        <span class="tag tag-discover">read-only</span>
-        <span class="tag tag-model">haiku</span>
-        <p class="agent-desc">Categorizes each change (schema, config, API, feature flag, infra) and assigns a risk tier (T1-T4).</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">SLA Scanner</div>
-        <span class="tag tag-discover">read-only</span>
-        <span class="tag tag-model">haiku</span>
-        <p class="agent-desc">Maps changed code paths to SLA/SLO commitments. Detects implicit SLAs from timeout values and retry configs.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====================================================
-       GATE 2: PLAN
-       ==================================================== -->
-  <div class="gate-section gate-plan">
-    <div class="gate-label">Gate 2 — PLAN</div>
-    <h3>Plan for Failure</h3>
-    <p>Three agents consume Gate 1 findings and produce operational plans. They cannot proceed until all Gate 1 tasks complete.</p>
-
-    <div class="agent-grid">
-      <div class="agent-card">
-        <div class="agent-name">Rollback Strategist</div>
-        <span class="tag tag-plan">writes</span>
-        <span class="tag tag-model">sonnet</span>
-        <p class="agent-desc">Writes executable rollback procedures for every change type. Identifies points of no return.</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">Observability Auditor</div>
-        <span class="tag tag-plan">reads</span>
-        <span class="tag tag-model">sonnet</span>
-        <p class="agent-desc">Audits logging, metrics, and alerting coverage. Flags silent failure paths and dark code.</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">Failure Analyst</div>
-        <span class="tag tag-plan">reads</span>
-        <span class="tag tag-model">sonnet</span>
-        <p class="agent-desc">Runs FMEA — enumerates failure modes, scores each with Risk Priority Numbers (Severity x Occurrence x Detection).</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====================================================
-       GATE 3: PROVE
-       ==================================================== -->
-  <div class="gate-section gate-prove">
-    <div class="gate-label">Gate 3 — PROVE</div>
-    <h3>Prove It Works</h3>
-    <p>Two synthesis agents produce operator-facing deliverables. Then the validator reviews everything with veto authority.</p>
-
-    <div class="agent-grid">
-      <div class="agent-card">
-        <div class="agent-name">Runbook Generator</div>
-        <span class="tag tag-prove">writes</span>
-        <span class="tag tag-model">sonnet</span>
-        <p class="agent-desc">Synthesizes all findings into an operator runbook. Passes the 3am rule: executable by on-call who has never seen this code.</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">Chaos Writer</div>
-        <span class="tag tag-prove">writes</span>
-        <span class="tag tag-model">sonnet</span>
-        <p class="agent-desc">Turns FMEA failure modes into testable chaos scenarios with setup, trigger, and pass/fail criteria.</p>
-      </div>
-      <div class="agent-card">
-        <div class="agent-name">Validator</div>
-        <span class="tag tag-prove">veto</span>
-        <span class="tag tag-model">sonnet/opus</span>
-        <p class="agent-desc">QA gate with absolute veto authority. Binary PASS/FAIL. Cannot fix what it finds — only judge.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====================================================
-       FMEA SCORING
-       ==================================================== -->
-  <h2>FMEA Risk Scoring</h2>
-  <p>
-    Each failure mode gets a Risk Priority Number: <strong>Severity (1-10) x Occurrence (1-10) x Detection (1-10)</strong>.
-    Manufacturing reliability methodology, applied to code changes.
-  </p>
-
-  <div class="rpn-scale">
-    <div class="rpn-band rpn-ok">0-49<br>Accept</div>
-    <div class="rpn-band rpn-mod">50-124<br>Monitor</div>
-    <div class="rpn-band rpn-high">125-199<br>Mitigate</div>
-    <div class="rpn-band rpn-block">200+<br>BLOCK</div>
-  </div>
-
-  <p>
-    Items scoring 200+ automatically trigger a deploy block. The validator
-    verifies that every critical FMEA item has both a rollback procedure and
-    a chaos test scenario.
-  </p>
-
-  <!-- ====================================================
-       OUTPUT ARTIFACTS
-       ==================================================== -->
-  <h2>Output Artifacts</h2>
-  <p>The swarm produces 8 concrete files — not a slide deck, not a report. Operator-grade artifacts.</p>
-
-  <table>
-    <thead>
-      <tr><th>Artifact</th><th>Gate</th><th>Purpose</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>blast-radius.md</code></td><td>1</td><td>Dependency map of all affected systems</td></tr>
-      <tr><td><code>classification.json</code></td><td>1</td><td>Change types and risk tiers</td></tr>
-      <tr><td><code>sla-exposure.md</code></td><td>1</td><td>SLA/SLO impact analysis</td></tr>
-      <tr><td><code>rollback-plan.md</code></td><td>2</td><td>Executable rollback procedures with verification</td></tr>
-      <tr><td><code>obs-gaps.md</code></td><td>2</td><td>Monitoring coverage analysis</td></tr>
-      <tr><td><code>fmea-matrix.md</code></td><td>2</td><td>Failure modes with RPN scores</td></tr>
-      <tr><td><code>runbook.md</code></td><td>3</td><td>Operator-facing deployment guide</td></tr>
-      <tr><td><code>chaos-scenarios.md</code></td><td>3</td><td>Testable failure scenarios</td></tr>
-    </tbody>
-  </table>
-
-  <!-- ====================================================
-       ADAPTIVE SCALING
-       ==================================================== -->
-  <h2>Adaptive Scaling</h2>
-  <p>Not every change needs 9 agents. The swarm triages first, then right-sizes.</p>
-
-  <table>
-    <thead>
-      <tr><th>Change Size</th><th>Mode</th><th>Agents</th><th>What Runs</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Docs/tests only</td><td>Skip</td><td>0</td><td>Nothing — no production impact</td></tr>
-      <tr><td>Less than 5 files, single dir</td><td>Light</td><td>3</td><td>Classifier + Rollback + Validator</td></tr>
-      <tr><td>5-20 files, single service</td><td>Standard</td><td>9</td><td>Full 3-gate pipeline</td></tr>
-      <tr><td>20+ files, cross-service</td><td>Full</td><td>9</td><td>Same agents, upgraded models</td></tr>
-    </tbody>
-  </table>
-
-  <!-- ====================================================
-       MODEL TIERING
-       ==================================================== -->
-  <h2>Model Tiering</h2>
-  <p>Different cognitive tasks need different model capabilities. Cost matters.</p>
-
-  <table>
-    <thead>
-      <tr><th>Tier</th><th>Model</th><th>Agents</th><th>Why</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Search</td>
-        <td><code>haiku</code></td>
-        <td>Gate 1 mappers</td>
-        <td>Pattern matching and dependency tracing — fast, cheap</td>
-      </tr>
-      <tr>
-        <td>Execute</td>
-        <td><code>sonnet</code></td>
-        <td>Gate 2+3 agents</td>
-        <td>Synthesis and writing — needs reasoning</td>
-      </tr>
-      <tr>
-        <td>Judge</td>
-        <td><code>opus</code></td>
-        <td>Validator (full mode)</td>
-        <td>High-stakes judgment calls — worth the cost</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- ====================================================
-       WHY THIS WORKS
-       ==================================================== -->
-  <h2>Why This Works</h2>
-
-  <div class="card">
-    <div class="card-title">Parallel by design</div>
-    <p>Gate 1 agents run simultaneously. Gate 2 agents run simultaneously. Total wall-clock time is 3 sequential stages, not 9 sequential agents.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Gated, not waterfall</div>
-    <p>Each gate has explicit <code>blockedBy</code> dependencies. Gate 2 cannot start until Gate 1 completes. The validator cannot start until Gates 2 and 3 complete. No shortcuts.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Veto authority is real</div>
-    <p>The validator produces a binary PASS/FAIL. It cannot fix what it finds. It cannot negotiate. It holds absolute veto — the separation principle prevents capture.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Artifacts, not reports</div>
-    <p>The runbook is executable. The chaos scenarios are testable. The rollback plan has verification steps. Everything is designed for the 3am operator, not the morning standup.</p>
-  </div>
-
-  <!-- ====================================================
        GETTING STARTED
        ==================================================== -->
   <h2>Getting Started with Claude Code</h2>
@@ -1194,6 +898,302 @@ echo "PRR Swarm installed. Run: claude then /prr-swarm"</pre>
       <tr><td>Validator</td><td>3</td><td>sonnet/opus</td><td>Read, Grep, Glob</td><td>prr-verdict.json</td></tr>
     </tbody>
   </table>
+
+  <!-- ====================================================
+       THE PROBLEM
+       ==================================================== -->
+  <h2>The Problem</h2>
+  <p>
+    Every production change carries risk. Most teams manage that risk through
+    checklists, peer review, and institutional knowledge. But checklists get stale,
+    reviewers get fatigued, and knowledge walks out the door.
+  </p>
+  <p>
+    The PRR Swarm replaces ad-hoc review with a structured, parallel analysis
+    pipeline. It takes a branch, PR, or diff and produces everything an on-call
+    engineer needs to deploy confidently and recover gracefully.
+  </p>
+
+  <!-- ====================================================
+       ARCHITECTURE
+       ==================================================== -->
+  <h2>Architecture: 3-Gate Pipeline</h2>
+  <p>
+    The pipeline enforces <strong>separation of duties</strong> across three gates.
+    Each gate must complete before the next begins. No agent can self-certify.
+  </p>
+
+  <div class="diagram-wrap">
+    <pre>
+              GATE 1: KNOW (parallel, read-only)
+              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
+  diff.patch ─┤ Blast Radius│  │   Change     │  │    SLA     │
+  files.txt  ─┤   Mapper    │  │  Classifier  │  │  Scanner   │
+              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
+                     │                │                │
+                     ▼                ▼                ▼
+           blast-radius.md  classification.json  sla-exposure.md
+                     │                │                │
+              GATE 2: PLAN (parallel, blocked by Gate 1)
+              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
+              │  Rollback   │  │ Observability│  │  Failure   │
+              │ Strategist  │  │   Auditor    │  │  Analyst   │
+              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
+                     │                │                │
+                     ▼                ▼                ▼
+           rollback-plan.md     obs-gaps.md      fmea-matrix.md
+                     │                │                │
+              GATE 3: PROVE (parallel then sequential)
+              ┌─────────────┐                   ┌────────────┐
+              │   Runbook   │◄──── all ────────▶│   Chaos    │
+              │  Generator  │    outputs        │   Writer   │
+              └──────┬──────┘                   └─────┬──────┘
+                     │                                │
+                     └────────────┬───────────────────┘
+                                  ▼
+                           ┌────────────┐
+                           │  Validator  │  ← VETO AUTHORITY
+                           └──────┬─────┘
+                                  ▼
+                          prr-verdict.json
+                          PASS  or  FAIL</pre>
+  </div>
+
+  <!-- ====================================================
+       SEPARATION OF DUTIES
+       ==================================================== -->
+  <h2>Separation of Duties</h2>
+  <p>
+    The architecture enforces a principle borrowed from financial controls:
+    the person who writes the check cannot also approve it. In the PRR Swarm,
+    agents that discover cannot modify, and the validator that judges cannot fix.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Can Read</th>
+        <th>Can Write</th>
+        <th>Can Veto</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Gate 1: Mappers</td><td>Yes</td><td>No</td><td>No</td></tr>
+      <tr><td>Gate 2: Planners</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Gate 3: Synthesizers</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Validator</td><td>Yes</td><td>No</td><td><strong>Yes</strong></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       GATE 1: KNOW
+       ==================================================== -->
+  <div class="gate-section gate-know">
+    <div class="gate-label">Gate 1 — KNOW</div>
+    <h3>Discover What Changed</h3>
+    <p>Three read-only agents run in parallel, each analyzing the diff from a different angle. They cannot modify the codebase — only observe.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Blast Radius Mapper</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Traces every changed file to its L2 dependencies — what calls it, what it calls, what data it touches.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Change Classifier</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Categorizes each change (schema, config, API, feature flag, infra) and assigns a risk tier (T1-T4).</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">SLA Scanner</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Maps changed code paths to SLA/SLO commitments. Detects implicit SLAs from timeout values and retry configs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       GATE 2: PLAN
+       ==================================================== -->
+  <div class="gate-section gate-plan">
+    <div class="gate-label">Gate 2 — PLAN</div>
+    <h3>Plan for Failure</h3>
+    <p>Three agents consume Gate 1 findings and produce operational plans. They cannot proceed until all Gate 1 tasks complete.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Rollback Strategist</div>
+        <span class="tag tag-plan">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Writes executable rollback procedures for every change type. Identifies points of no return.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Observability Auditor</div>
+        <span class="tag tag-plan">reads</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Audits logging, metrics, and alerting coverage. Flags silent failure paths and dark code.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Failure Analyst</div>
+        <span class="tag tag-plan">reads</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Runs FMEA — enumerates failure modes, scores each with Risk Priority Numbers (Severity x Occurrence x Detection).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       GATE 3: PROVE
+       ==================================================== -->
+  <div class="gate-section gate-prove">
+    <div class="gate-label">Gate 3 — PROVE</div>
+    <h3>Prove It Works</h3>
+    <p>Two synthesis agents produce operator-facing deliverables. Then the validator reviews everything with veto authority.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Runbook Generator</div>
+        <span class="tag tag-prove">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Synthesizes all findings into an operator runbook. Passes the 3am rule: executable by on-call who has never seen this code.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Chaos Writer</div>
+        <span class="tag tag-prove">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Turns FMEA failure modes into testable chaos scenarios with setup, trigger, and pass/fail criteria.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Validator</div>
+        <span class="tag tag-prove">veto</span>
+        <span class="tag tag-model">sonnet/opus</span>
+        <p class="agent-desc">QA gate with absolute veto authority. Binary PASS/FAIL. Cannot fix what it finds — only judge.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       FMEA SCORING
+       ==================================================== -->
+  <h2>FMEA Risk Scoring</h2>
+  <p>
+    Each failure mode gets a Risk Priority Number: <strong>Severity (1-10) x Occurrence (1-10) x Detection (1-10)</strong>.
+    Manufacturing reliability methodology, applied to code changes.
+  </p>
+
+  <div class="rpn-scale">
+    <div class="rpn-band rpn-ok">0-49<br>Accept</div>
+    <div class="rpn-band rpn-mod">50-124<br>Monitor</div>
+    <div class="rpn-band rpn-high">125-199<br>Mitigate</div>
+    <div class="rpn-band rpn-block">200+<br>BLOCK</div>
+  </div>
+
+  <p>
+    Items scoring 200+ automatically trigger a deploy block. The validator
+    verifies that every critical FMEA item has both a rollback procedure and
+    a chaos test scenario.
+  </p>
+
+  <!-- ====================================================
+       OUTPUT ARTIFACTS
+       ==================================================== -->
+  <h2>Output Artifacts</h2>
+  <p>The swarm produces 8 concrete files — not a slide deck, not a report. Operator-grade artifacts.</p>
+
+  <table>
+    <thead>
+      <tr><th>Artifact</th><th>Gate</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>blast-radius.md</code></td><td>1</td><td>Dependency map of all affected systems</td></tr>
+      <tr><td><code>classification.json</code></td><td>1</td><td>Change types and risk tiers</td></tr>
+      <tr><td><code>sla-exposure.md</code></td><td>1</td><td>SLA/SLO impact analysis</td></tr>
+      <tr><td><code>rollback-plan.md</code></td><td>2</td><td>Executable rollback procedures with verification</td></tr>
+      <tr><td><code>obs-gaps.md</code></td><td>2</td><td>Monitoring coverage analysis</td></tr>
+      <tr><td><code>fmea-matrix.md</code></td><td>2</td><td>Failure modes with RPN scores</td></tr>
+      <tr><td><code>runbook.md</code></td><td>3</td><td>Operator-facing deployment guide</td></tr>
+      <tr><td><code>chaos-scenarios.md</code></td><td>3</td><td>Testable failure scenarios</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       ADAPTIVE SCALING
+       ==================================================== -->
+  <h2>Adaptive Scaling</h2>
+  <p>Not every change needs 9 agents. The swarm triages first, then right-sizes.</p>
+
+  <table>
+    <thead>
+      <tr><th>Change Size</th><th>Mode</th><th>Agents</th><th>What Runs</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Docs/tests only</td><td>Skip</td><td>0</td><td>Nothing — no production impact</td></tr>
+      <tr><td>Less than 5 files, single dir</td><td>Light</td><td>3</td><td>Classifier + Rollback + Validator</td></tr>
+      <tr><td>5-20 files, single service</td><td>Standard</td><td>9</td><td>Full 3-gate pipeline</td></tr>
+      <tr><td>20+ files, cross-service</td><td>Full</td><td>9</td><td>Same agents, upgraded models</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       MODEL TIERING
+       ==================================================== -->
+  <h2>Model Tiering</h2>
+  <p>Different cognitive tasks need different model capabilities. Cost matters.</p>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Model</th><th>Agents</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Search</td>
+        <td><code>haiku</code></td>
+        <td>Gate 1 mappers</td>
+        <td>Pattern matching and dependency tracing — fast, cheap</td>
+      </tr>
+      <tr>
+        <td>Execute</td>
+        <td><code>sonnet</code></td>
+        <td>Gate 2+3 agents</td>
+        <td>Synthesis and writing — needs reasoning</td>
+      </tr>
+      <tr>
+        <td>Judge</td>
+        <td><code>opus</code></td>
+        <td>Validator (full mode)</td>
+        <td>High-stakes judgment calls — worth the cost</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       WHY THIS WORKS
+       ==================================================== -->
+  <h2>Why This Works</h2>
+
+  <div class="card">
+    <div class="card-title">Parallel by design</div>
+    <p>Gate 1 agents run simultaneously. Gate 2 agents run simultaneously. Total wall-clock time is 3 sequential stages, not 9 sequential agents.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Gated, not waterfall</div>
+    <p>Each gate has explicit <code>blockedBy</code> dependencies. Gate 2 cannot start until Gate 1 completes. The validator cannot start until Gates 2 and 3 complete. No shortcuts.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Veto authority is real</div>
+    <p>The validator produces a binary PASS/FAIL. It cannot fix what it finds. It cannot negotiate. It holds absolute veto — the separation principle prevents capture.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Artifacts, not reports</div>
+    <p>The runbook is executable. The chaos scenarios are testable. The rollback plan has verification steps. Everything is designed for the 3am operator, not the morning standup.</p>
+  </div>
 
   <!-- ====================================================
        EXAMPLE OUTPUT
