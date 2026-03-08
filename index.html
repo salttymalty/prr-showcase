@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="focus">
+<!-- guards: core/color, core/typography, core/layout, core/interaction -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Readiness Review Swarm — Claude Code Multi-Agent Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Source+Code+Pro:wght@400;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PRIMITIVE TOKENS — canonical hex values
+   ============================================================ */
+:root {
+  --depth-abyss: #0d1117;
+  --depth-trench: #161b22;
+  --depth-deep: #1a1e24;
+  --depth-mid: #252a33;
+  --depth-surface: #353d4a;
+  --depth-foam: #8899aa;
+
+  --teal-deep: #1a3a40;
+  --teal-mid: #2d5a62;
+  --teal-standard: #4b7c8c;
+  --teal-bright: #5c9aad;
+  --teal-pale: #b8d4dc;
+
+  --ember-terracotta: #c4704b;
+  --ember-clay: #d4846a;
+  --ember-blush: #e8c4b4;
+
+  --dawn-golden: #c49a4b;
+  --dawn-amber: #d4aa6a;
+  --dawn-honey: #e8d4a8;
+
+  --forest-sage: #5c7c6b;
+  --forest-lichen: #8aaa98;
+  --forest-mist: #c8d9ce;
+
+  --signal-ok: #5c8c4b;
+  --signal-warn: #996622;
+  --signal-fail: #c44b4b;
+  --signal-info: #4b7c8c;
+
+  --ink-full: #2c2825;
+  --ink-soft: #5c5550;
+  --ink-muted: #8a8580;
+  --tone-cream: #f7f5f2;
+  --tone-paper: #faf9f7;
+  --tone-linen: #f0ede8;
+  --tone-divider: #d4d0cc;
+
+  /* ============================================================
+     SEMANTIC TOKENS — components use ONLY these
+     ============================================================ */
+  --color-ground: var(--depth-abyss);
+  --color-surface: var(--depth-trench);
+  --color-surface-raised: var(--depth-deep);
+  --color-surface-inset: var(--depth-mid);
+
+  --color-primary: var(--teal-standard);
+  --color-primary-deep: var(--teal-deep);
+  --color-primary-bright: var(--teal-bright);
+  --color-primary-pale: var(--teal-pale);
+
+  --color-accent: var(--teal-bright);
+  --color-accent-warm: var(--ember-terracotta);
+  --color-accent-warm-soft: var(--ember-clay);
+  --color-accent-gold: var(--dawn-golden);
+
+  --color-text: var(--tone-cream);
+  --color-text-soft: var(--depth-foam);
+  --color-text-muted: var(--ink-muted);
+  --color-text-strong: var(--tone-paper);
+
+  --color-heading: var(--tone-paper);
+  --color-heading-accent: var(--teal-pale);
+
+  --color-line: var(--depth-mid);
+  --color-line-soft: var(--depth-surface);
+
+  --color-gate-discover: var(--teal-bright);
+  --color-gate-plan: var(--dawn-golden);
+  --color-gate-prove: var(--forest-sage);
+
+  --color-tag-discover-bg: var(--teal-deep);
+  --color-tag-plan-bg: var(--depth-mid);
+  --color-tag-prove-bg: var(--depth-mid);
+
+  --color-tag-role-discover: var(--teal-bright);
+  --color-tag-role-plan: var(--dawn-amber);
+  --color-tag-role-prove: var(--forest-lichen);
+
+  --color-verdict-pass: var(--signal-ok);
+  --color-verdict-fail: var(--signal-fail);
+  --color-verdict-warn: var(--signal-warn);
+
+  --color-rpn-ok: var(--signal-ok);
+  --color-rpn-mod: var(--signal-warn);
+  --color-rpn-high: var(--ember-terracotta);
+  --color-rpn-block: var(--signal-fail);
+
+  --color-code-bg: var(--depth-deep);
+  --color-code-text: var(--depth-foam);
+
+  --color-print-ground: var(--tone-paper);
+  --color-print-text: var(--depth-deep);
+  --color-print-surface: var(--tone-linen);
+  --color-print-line: var(--tone-divider);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+  --font-mono: 'Source Code Pro', monospace;
+
+  --radius-default: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+
+  --shadow-soft: 0 2px 8px hsla(200, 20%, 10%, 0.3);
+  --shadow-card: 0 4px 16px hsla(200, 20%, 10%, 0.25);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-ground);
+  color: var(--color-text);
+  line-height: 1.6;
+  padding: 0;
+  margin: 0;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--color-heading);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-line);
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-heading-accent);
+}
+
+p {
+  margin-bottom: 1rem;
+  max-width: 72ch;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--color-code-bg);
+  color: var(--color-code-text);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--color-code-bg);
+  color: var(--color-code-text);
+  padding: 1.5rem;
+  border-radius: var(--radius-default);
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--color-line);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 4vw, 3rem);
+}
+
+.hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
+}
+
+.hero .subtitle {
+  font-size: 1.25rem;
+  color: var(--color-text-soft);
+  margin-top: 1rem;
+  max-width: 60ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero .badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 1rem;
+  background: var(--color-primary-deep);
+  color: var(--color-primary-bright);
+  border: 1px solid var(--color-primary);
+}
+
+/* ============================================================
+   CARDS & SECTIONS
+   ============================================================ */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-default);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  border: 1px solid var(--color-line);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 0.5rem;
+}
+
+.gate-section {
+  border-left: 3px solid var(--color-line-soft);
+  padding-left: 1.5rem;
+  margin: 2rem 0;
+}
+
+.gate-section.gate-know { border-left-color: var(--color-gate-discover); }
+.gate-section.gate-plan { border-left-color: var(--color-gate-plan); }
+.gate-section.gate-prove { border-left-color: var(--color-gate-prove); }
+
+.gate-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.gate-know .gate-label { color: var(--color-gate-discover); }
+.gate-plan .gate-label { color: var(--color-gate-plan); }
+.gate-prove .gate-label { color: var(--color-gate-prove); }
+
+/* ============================================================
+   AGENT CARDS
+   ============================================================ */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.agent-card {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-default);
+  padding: 1.25rem;
+  border: 1px solid var(--color-line);
+}
+
+.agent-card .agent-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-strong);
+  margin-bottom: 0.25rem;
+}
+
+.agent-card .agent-desc {
+  font-size: 14px;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.tag-discover { background: var(--color-tag-discover-bg); color: var(--color-tag-role-discover); }
+.tag-plan { background: var(--color-tag-plan-bg); color: var(--color-tag-role-plan); }
+.tag-prove { background: var(--color-tag-prove-bg); color: var(--color-tag-role-prove); }
+.tag-model { background: var(--color-surface-inset); color: var(--color-text-soft); }
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 14px;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+th {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+
+/* ============================================================
+   DIAGRAM
+   ============================================================ */
+.diagram-wrap {
+  background: var(--color-surface);
+  border-radius: var(--radius-default);
+  padding: 1.5rem;
+  margin: 2rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+}
+
+.diagram-wrap pre {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-soft);
+}
+
+/* ============================================================
+   SCORING
+   ============================================================ */
+.rpn-scale {
+  display: flex;
+  gap: 0;
+  margin: 1rem 0;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+}
+
+.rpn-band {
+  flex: 1;
+  padding: 0.75rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rpn-ok { background: var(--color-rpn-ok); color: var(--color-ground); }
+.rpn-mod { background: var(--color-rpn-mod); color: var(--color-ground); }
+.rpn-high { background: var(--color-rpn-high); color: var(--color-ground); }
+.rpn-block { background: var(--color-rpn-block); color: var(--color-text); }
+
+/* ============================================================
+   GETTING STARTED
+   ============================================================ */
+.steps {
+  counter-reset: step;
+  list-style: none;
+  padding: 0;
+}
+
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 3rem;
+  margin-bottom: 1.5rem;
+  min-height: 44px;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2rem;
+  height: 2rem;
+  background: var(--color-primary-deep);
+  color: var(--color-primary-bright);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  margin-top: 4rem;
+  padding: 2rem 0;
+  border-top: 1px solid var(--color-line);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  body {
+    background: var(--color-print-ground);
+    color: var(--color-print-text);
+  }
+  .card, .agent-card, .diagram-wrap {
+    background: var(--color-print-surface);
+    border: 1px solid var(--color-print-line);
+    break-inside: avoid;
+  }
+  pre {
+    background: var(--color-print-surface);
+    border: 1px solid var(--color-print-line);
+  }
+  h2 {
+    border-bottom-color: var(--color-print-line);
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ====================================================
+       HERO
+       ==================================================== -->
+  <header class="hero">
+    <span class="badge">Claude Code Multi-Agent Architecture</span>
+    <h1>Production Readiness Review Swarm</h1>
+    <p class="subtitle">
+      9 specialized agents. 3 gates. Veto authority.
+      Automated production assurance that produces operator-grade artifacts, not reports.
+    </p>
+  </header>
+
+  <!-- ====================================================
+       THE PROBLEM
+       ==================================================== -->
+  <h2>The Problem</h2>
+  <p>
+    Every production change carries risk. Most teams manage that risk through
+    checklists, peer review, and institutional knowledge. But checklists get stale,
+    reviewers get fatigued, and knowledge walks out the door.
+  </p>
+  <p>
+    The PRR Swarm replaces ad-hoc review with a structured, parallel analysis
+    pipeline. It takes a branch, PR, or diff and produces everything an on-call
+    engineer needs to deploy confidently and recover gracefully.
+  </p>
+
+  <!-- ====================================================
+       ARCHITECTURE
+       ==================================================== -->
+  <h2>Architecture: 3-Gate Pipeline</h2>
+  <p>
+    The pipeline enforces <strong>separation of duties</strong> across three gates.
+    Each gate must complete before the next begins. No agent can self-certify.
+  </p>
+
+  <div class="diagram-wrap">
+    <pre>
+              GATE 1: KNOW (parallel, read-only)
+              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
+  diff.patch ─┤ Blast Radius│  │   Change     │  │    SLA     │
+  files.txt  ─┤   Mapper    │  │  Classifier  │  │  Scanner   │
+              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
+                     │                │                │
+                     ▼                ▼                ▼
+           blast-radius.md  classification.json  sla-exposure.md
+                     │                │                │
+              GATE 2: PLAN (parallel, blocked by Gate 1)
+              ┌─────────────┐  ┌──────────────┐  ┌────────────┐
+              │  Rollback   │  │ Observability│  │  Failure   │
+              │ Strategist  │  │   Auditor    │  │  Analyst   │
+              └──────┬──────┘  └──────┬───────┘  └─────┬──────┘
+                     │                │                │
+                     ▼                ▼                ▼
+           rollback-plan.md     obs-gaps.md      fmea-matrix.md
+                     │                │                │
+              GATE 3: PROVE (parallel then sequential)
+              ┌─────────────┐                   ┌────────────┐
+              │   Runbook   │◄──── all ────────▶│   Chaos    │
+              │  Generator  │    outputs        │   Writer   │
+              └──────┬──────┘                   └─────┬──────┘
+                     │                                │
+                     └────────────┬───────────────────┘
+                                  ▼
+                           ┌────────────┐
+                           │  Validator  │  ← VETO AUTHORITY
+                           └──────┬─────┘
+                                  ▼
+                          prr-verdict.json
+                          PASS  or  FAIL</pre>
+  </div>
+
+  <!-- ====================================================
+       SEPARATION OF DUTIES
+       ==================================================== -->
+  <h2>Separation of Duties</h2>
+  <p>
+    The architecture enforces a principle borrowed from financial controls:
+    the person who writes the check cannot also approve it. In the PRR Swarm,
+    agents that discover cannot modify, and the validator that judges cannot fix.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Can Read</th>
+        <th>Can Write</th>
+        <th>Can Veto</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Gate 1: Mappers</td><td>Yes</td><td>No</td><td>No</td></tr>
+      <tr><td>Gate 2: Planners</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Gate 3: Synthesizers</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Validator</td><td>Yes</td><td>No</td><td><strong>Yes</strong></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       GATE 1: KNOW
+       ==================================================== -->
+  <div class="gate-section gate-know">
+    <div class="gate-label">Gate 1 — KNOW</div>
+    <h3>Discover What Changed</h3>
+    <p>Three read-only agents run in parallel, each analyzing the diff from a different angle. They cannot modify the codebase — only observe.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Blast Radius Mapper</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Traces every changed file to its L2 dependencies — what calls it, what it calls, what data it touches.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Change Classifier</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Categorizes each change (schema, config, API, feature flag, infra) and assigns a risk tier (T1-T4).</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">SLA Scanner</div>
+        <span class="tag tag-discover">read-only</span>
+        <span class="tag tag-model">haiku</span>
+        <p class="agent-desc">Maps changed code paths to SLA/SLO commitments. Detects implicit SLAs from timeout values and retry configs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       GATE 2: PLAN
+       ==================================================== -->
+  <div class="gate-section gate-plan">
+    <div class="gate-label">Gate 2 — PLAN</div>
+    <h3>Plan for Failure</h3>
+    <p>Three agents consume Gate 1 findings and produce operational plans. They cannot proceed until all Gate 1 tasks complete.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Rollback Strategist</div>
+        <span class="tag tag-plan">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Writes executable rollback procedures for every change type. Identifies points of no return.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Observability Auditor</div>
+        <span class="tag tag-plan">reads</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Audits logging, metrics, and alerting coverage. Flags silent failure paths and dark code.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Failure Analyst</div>
+        <span class="tag tag-plan">reads</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Runs FMEA — enumerates failure modes, scores each with Risk Priority Numbers (Severity x Occurrence x Detection).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       GATE 3: PROVE
+       ==================================================== -->
+  <div class="gate-section gate-prove">
+    <div class="gate-label">Gate 3 — PROVE</div>
+    <h3>Prove It Works</h3>
+    <p>Two synthesis agents produce operator-facing deliverables. Then the validator reviews everything with veto authority.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Runbook Generator</div>
+        <span class="tag tag-prove">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Synthesizes all findings into an operator runbook. Passes the 3am rule: executable by on-call who has never seen this code.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Chaos Writer</div>
+        <span class="tag tag-prove">writes</span>
+        <span class="tag tag-model">sonnet</span>
+        <p class="agent-desc">Turns FMEA failure modes into testable chaos scenarios with setup, trigger, and pass/fail criteria.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Validator</div>
+        <span class="tag tag-prove">veto</span>
+        <span class="tag tag-model">sonnet/opus</span>
+        <p class="agent-desc">QA gate with absolute veto authority. Binary PASS/FAIL. Cannot fix what it finds — only judge.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       FMEA SCORING
+       ==================================================== -->
+  <h2>FMEA Risk Scoring</h2>
+  <p>
+    Each failure mode gets a Risk Priority Number: <strong>Severity (1-10) x Occurrence (1-10) x Detection (1-10)</strong>.
+    Manufacturing reliability methodology, applied to code changes.
+  </p>
+
+  <div class="rpn-scale">
+    <div class="rpn-band rpn-ok">0-49<br>Accept</div>
+    <div class="rpn-band rpn-mod">50-124<br>Monitor</div>
+    <div class="rpn-band rpn-high">125-199<br>Mitigate</div>
+    <div class="rpn-band rpn-block">200+<br>BLOCK</div>
+  </div>
+
+  <p>
+    Items scoring 200+ automatically trigger a deploy block. The validator
+    verifies that every critical FMEA item has both a rollback procedure and
+    a chaos test scenario.
+  </p>
+
+  <!-- ====================================================
+       OUTPUT ARTIFACTS
+       ==================================================== -->
+  <h2>Output Artifacts</h2>
+  <p>The swarm produces 8 concrete files — not a slide deck, not a report. Operator-grade artifacts.</p>
+
+  <table>
+    <thead>
+      <tr><th>Artifact</th><th>Gate</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>blast-radius.md</code></td><td>1</td><td>Dependency map of all affected systems</td></tr>
+      <tr><td><code>classification.json</code></td><td>1</td><td>Change types and risk tiers</td></tr>
+      <tr><td><code>sla-exposure.md</code></td><td>1</td><td>SLA/SLO impact analysis</td></tr>
+      <tr><td><code>rollback-plan.md</code></td><td>2</td><td>Executable rollback procedures with verification</td></tr>
+      <tr><td><code>obs-gaps.md</code></td><td>2</td><td>Monitoring coverage analysis</td></tr>
+      <tr><td><code>fmea-matrix.md</code></td><td>2</td><td>Failure modes with RPN scores</td></tr>
+      <tr><td><code>runbook.md</code></td><td>3</td><td>Operator-facing deployment guide</td></tr>
+      <tr><td><code>chaos-scenarios.md</code></td><td>3</td><td>Testable failure scenarios</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       ADAPTIVE SCALING
+       ==================================================== -->
+  <h2>Adaptive Scaling</h2>
+  <p>Not every change needs 9 agents. The swarm triages first, then right-sizes.</p>
+
+  <table>
+    <thead>
+      <tr><th>Change Size</th><th>Mode</th><th>Agents</th><th>What Runs</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Docs/tests only</td><td>Skip</td><td>0</td><td>Nothing — no production impact</td></tr>
+      <tr><td>Less than 5 files, single dir</td><td>Light</td><td>3</td><td>Classifier + Rollback + Validator</td></tr>
+      <tr><td>5-20 files, single service</td><td>Standard</td><td>9</td><td>Full 3-gate pipeline</td></tr>
+      <tr><td>20+ files, cross-service</td><td>Full</td><td>9</td><td>Same agents, upgraded models</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       MODEL TIERING
+       ==================================================== -->
+  <h2>Model Tiering</h2>
+  <p>Different cognitive tasks need different model capabilities. Cost matters.</p>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Model</th><th>Agents</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Search</td>
+        <td><code>haiku</code></td>
+        <td>Gate 1 mappers</td>
+        <td>Pattern matching and dependency tracing — fast, cheap</td>
+      </tr>
+      <tr>
+        <td>Execute</td>
+        <td><code>sonnet</code></td>
+        <td>Gate 2+3 agents</td>
+        <td>Synthesis and writing — needs reasoning</td>
+      </tr>
+      <tr>
+        <td>Judge</td>
+        <td><code>opus</code></td>
+        <td>Validator (full mode)</td>
+        <td>High-stakes judgment calls — worth the cost</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       WHY THIS WORKS
+       ==================================================== -->
+  <h2>Why This Works</h2>
+
+  <div class="card">
+    <div class="card-title">Parallel by design</div>
+    <p>Gate 1 agents run simultaneously. Gate 2 agents run simultaneously. Total wall-clock time is 3 sequential stages, not 9 sequential agents.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Gated, not waterfall</div>
+    <p>Each gate has explicit <code>blockedBy</code> dependencies. Gate 2 cannot start until Gate 1 completes. The validator cannot start until Gates 2 and 3 complete. No shortcuts.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Veto authority is real</div>
+    <p>The validator produces a binary PASS/FAIL. It cannot fix what it finds. It cannot negotiate. It holds absolute veto — the separation principle prevents capture.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Artifacts, not reports</div>
+    <p>The runbook is executable. The chaos scenarios are testable. The rollback plan has verification steps. Everything is designed for the 3am operator, not the morning standup.</p>
+  </div>
+
+  <!-- ====================================================
+       GETTING STARTED
+       ==================================================== -->
+  <h2>Getting Started with Claude Code</h2>
+  <p>
+    Claude Code is Anthropic's CLI tool that gives Claude direct access to your
+    terminal, filesystem, and git. The PRR Swarm runs entirely inside it.
+    Here's how to get started.
+  </p>
+
+  <h3>Installation</h3>
+  <ol class="steps">
+    <li>
+      <strong>Install Claude Code</strong>
+      <pre>npm install -g @anthropic-ai/claude-code</pre>
+      <p>Requires Node.js 18+. Authenticates via your Anthropic API key or through the browser.</p>
+    </li>
+    <li>
+      <strong>Launch in your repo</strong>
+      <pre>cd your-project &amp;&amp; claude</pre>
+      <p>Claude Code opens an interactive session with full access to your codebase.</p>
+    </li>
+    <li>
+      <strong>Try basic operations first</strong>
+      <pre># Ask Claude to explore your codebase
+"What are the main entry points in this project?"
+
+# Ask it to make a change
+"Add input validation to the /api/users endpoint"
+
+# Ask it to run tests
+"Run the test suite and fix any failures"</pre>
+    </li>
+    <li>
+      <strong>Run the PRR Swarm</strong>
+      <pre># Once agent roles are configured:
+/prr-swarm                          # Review current branch vs main
+/prr-swarm feature/auth-refactor    # Review specific branch
+/prr-swarm #142                     # Review a PR by number</pre>
+    </li>
+  </ol>
+
+  <h3>Key Concepts</h3>
+  <div class="card">
+    <div class="card-title">Skills (slash commands)</div>
+    <p>
+      Skills are reusable prompts that encode complex workflows. <code>/prr-swarm</code> is
+      a skill that orchestrates the entire 3-gate pipeline. You can create your own skills
+      for any repeatable workflow.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Agent Roles</div>
+    <p>
+      Each agent has a role file (markdown) that defines its identity, tools, model tier,
+      and anti-patterns. Roles live in <code>~/.claude/agents/</code> and are loaded into
+      agents when the swarm spawns them.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Teams and Task Lists</div>
+    <p>
+      Claude Code can spawn multiple agents that coordinate via shared task lists.
+      Tasks have dependencies (<code>blockedBy</code>), owners, and status tracking.
+      The team lead orchestrates; teammates execute.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">CLAUDE.md</div>
+    <p>
+      Every project can have a <code>CLAUDE.md</code> file with instructions that Claude
+      follows automatically. Think of it as a constitution for your AI assistant — coding
+      standards, routing rules, constraints, and conventions.
+    </p>
+  </div>
+
+  <!-- ====================================================
+       AGENT INVENTORY
+       ==================================================== -->
+  <h2>Agent Inventory</h2>
+  <p>The full set of agents in the PRR Swarm, with their capabilities and constraints.</p>
+
+  <table>
+    <thead>
+      <tr><th>Agent</th><th>Gate</th><th>Model</th><th>Tools</th><th>Output</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Blast Radius Mapper</td><td>1</td><td>haiku</td><td>Read, Grep, Glob</td><td>blast-radius.md</td></tr>
+      <tr><td>Change Classifier</td><td>1</td><td>haiku</td><td>Read, Grep, Glob</td><td>classification.json</td></tr>
+      <tr><td>SLA Scanner</td><td>1</td><td>haiku</td><td>Read, Grep, Glob</td><td>sla-exposure.md</td></tr>
+      <tr><td>Rollback Strategist</td><td>2</td><td>sonnet</td><td>Read, Grep, Glob, Write, Bash</td><td>rollback-plan.md</td></tr>
+      <tr><td>Observability Auditor</td><td>2</td><td>sonnet</td><td>Read, Grep, Glob</td><td>obs-gaps.md</td></tr>
+      <tr><td>Failure Analyst</td><td>2</td><td>sonnet</td><td>Read, Grep, Glob</td><td>fmea-matrix.md</td></tr>
+      <tr><td>Runbook Generator</td><td>3</td><td>sonnet</td><td>Read, Grep, Glob, Write, Bash</td><td>runbook.md</td></tr>
+      <tr><td>Chaos Writer</td><td>3</td><td>sonnet</td><td>Read, Grep, Glob, Write, Bash</td><td>chaos-scenarios.md</td></tr>
+      <tr><td>Validator</td><td>3</td><td>sonnet/opus</td><td>Read, Grep, Glob</td><td>prr-verdict.json</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       FOOTER
+       ==================================================== -->
+  <footer>
+    <p>
+      Built with Claude Code. No frameworks. No databases. Just agents, git, and judgment.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>
