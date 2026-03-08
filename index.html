@@ -440,6 +440,114 @@ th {
 }
 
 /* ============================================================
+   DOWNLOAD LINKS
+   ============================================================ */
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.download-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+  min-height: 44px;
+}
+
+.download-link:hover {
+  border-color: var(--color-accent);
+  text-decoration: none;
+}
+
+.download-link .dl-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+}
+
+.download-link .dl-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.download-link .dl-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   CALLOUT
+   ============================================================ */
+.callout {
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  font-size: 14px;
+}
+
+.callout strong {
+  color: var(--color-text-strong);
+}
+
+/* ============================================================
+   CONCEPT GRID
+   ============================================================ */
+.concept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 640px) {
+  .concept-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.concept-item {
+  background: var(--color-surface);
+  border-radius: var(--radius-default);
+  padding: 1.25rem;
+  border: 1px solid var(--color-line);
+}
+
+.concept-item .concept-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 0.25rem;
+}
+
+.concept-item .concept-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.concept-item p {
+  font-size: 14px;
+  color: var(--color-text-soft);
+  margin-bottom: 0;
+}
+
+/* ============================================================
    FOOTER
    ============================================================ */
 footer {
@@ -790,85 +898,285 @@ footer {
        ==================================================== -->
   <h2>Getting Started with Claude Code</h2>
   <p>
-    Claude Code is Anthropic's CLI tool that gives Claude direct access to your
-    terminal, filesystem, and git. The PRR Swarm runs entirely inside it.
-    Here's how to get started.
+    Claude Code is Anthropic's agentic CLI. You type natural language in your terminal;
+    Claude reads your files, writes code, runs commands, and manages git — with your
+    approval at each step. The PRR Swarm is one example of what you can build with it.
   </p>
 
-  <h3>Installation</h3>
+  <h3>Step 1: Install and Launch</h3>
   <ol class="steps">
     <li>
       <strong>Install Claude Code</strong>
       <pre>npm install -g @anthropic-ai/claude-code</pre>
-      <p>Requires Node.js 18+. Authenticates via your Anthropic API key or through the browser.</p>
+      <p>Requires Node.js 18+. On first run, it opens your browser to authenticate with your Anthropic account.</p>
     </li>
     <li>
-      <strong>Launch in your repo</strong>
+      <strong>Open a project</strong>
       <pre>cd your-project &amp;&amp; claude</pre>
-      <p>Claude Code opens an interactive session with full access to your codebase.</p>
+      <p>Claude Code starts an interactive session. It can see your entire codebase, run terminal commands, and edit files. You approve each action.</p>
     </li>
     <li>
-      <strong>Try basic operations first</strong>
-      <pre># Ask Claude to explore your codebase
-"What are the main entry points in this project?"
-
-# Ask it to make a change
-"Add input validation to the /api/users endpoint"
-
-# Ask it to run tests
-"Run the test suite and fix any failures"</pre>
-    </li>
-    <li>
-      <strong>Run the PRR Swarm</strong>
-      <pre># Once agent roles are configured:
-/prr-swarm                          # Review current branch vs main
-/prr-swarm feature/auth-refactor    # Review specific branch
-/prr-swarm #142                     # Review a PR by number</pre>
+      <strong>Start with plain English</strong>
+      <pre>"What does this project do? Walk me through the architecture."</pre>
+      <p>Claude reads your files, traces imports, and explains the structure. This is the fastest way to onboard onto any codebase.</p>
     </li>
   </ol>
 
-  <h3>Key Concepts</h3>
+  <h3>Step 2: Learn the Core Concepts</h3>
+  <p>Claude Code has four building blocks that make the PRR Swarm possible.</p>
+
+  <div class="concept-grid">
+    <div class="concept-item">
+      <div class="concept-name">CLAUDE.md</div>
+      <div class="concept-path">your-project/CLAUDE.md</div>
+      <p>A markdown file at the root of your repo that Claude reads automatically every session. Put your coding standards, project conventions, and any constraints here. Claude will follow them.</p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">Agent Roles</div>
+      <div class="concept-path">~/.claude/agents/*.md</div>
+      <p>Markdown files that define specialized agent identities. Each role has a name, model tier, allowed tools, and behavioral constraints. Claude loads these when spawning team members.</p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">Skills</div>
+      <div class="concept-path">~/.claude/skills/*/SKILL.md</div>
+      <p>Reusable workflows triggered with <code>/slash-commands</code>. A skill is a markdown file with step-by-step instructions. <code>/prr-swarm</code> is one — you can create your own for any repeatable process.</p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">Teams</div>
+      <div class="concept-path">~/.claude/teams/</div>
+      <p>Multi-agent coordination. Claude spawns teammates that share a task list with dependencies. Each teammate runs in its own context with its own role. The lead orchestrates; teammates execute.</p>
+    </div>
+  </div>
+
+  <h3>Step 3: Try Single-Agent Workflows First</h3>
+  <p>You don't need a 9-agent swarm to get value. Start with one agent doing one thing well.</p>
+
   <div class="card">
-    <div class="card-title">Skills (slash commands)</div>
-    <p>
-      Skills are reusable prompts that encode complex workflows. <code>/prr-swarm</code> is
-      a skill that orchestrates the entire 3-gate pipeline. You can create your own skills
-      for any repeatable workflow.
-    </p>
+    <div class="card-title">Explore a codebase you didn't write</div>
+    <pre>"I just cloned this repo. What are the main entry points?
+What frameworks does it use? Where are the tests?"</pre>
+    <p>Claude reads files, follows imports, and builds you a mental map. Faster than reading docs.</p>
   </div>
 
   <div class="card">
-    <div class="card-title">Agent Roles</div>
-    <p>
-      Each agent has a role file (markdown) that defines its identity, tools, model tier,
-      and anti-patterns. Roles live in <code>~/.claude/agents/</code> and are loaded into
-      agents when the swarm spawns them.
-    </p>
+    <div class="card-title">Write code with context</div>
+    <pre>"Add rate limiting to the /api/upload endpoint.
+Follow the same pattern used in /api/auth."</pre>
+    <p>Claude reads the existing pattern, matches the style, writes the implementation, and can run the tests to verify.</p>
   </div>
 
   <div class="card">
-    <div class="card-title">Teams and Task Lists</div>
-    <p>
-      Claude Code can spawn multiple agents that coordinate via shared task lists.
-      Tasks have dependencies (<code>blockedBy</code>), owners, and status tracking.
-      The team lead orchestrates; teammates execute.
-    </p>
+    <div class="card-title">Review a PR</div>
+    <pre>"Review PR #47. Focus on error handling and edge cases.
+Check if the rollback path is tested."</pre>
+    <p>Claude reads the diff, traces affected code paths, and gives you specific, line-level feedback.</p>
   </div>
 
   <div class="card">
-    <div class="card-title">CLAUDE.md</div>
-    <p>
-      Every project can have a <code>CLAUDE.md</code> file with instructions that Claude
-      follows automatically. Think of it as a constitution for your AI assistant — coding
-      standards, routing rules, constraints, and conventions.
-    </p>
+    <div class="card-title">Debug with full filesystem access</div>
+    <pre>"The /api/orders endpoint returns 500 intermittently.
+Check the logs, trace the error, and propose a fix."</pre>
+    <p>Claude can read log files, grep for patterns, check config, and trace the issue across files.</p>
+  </div>
+
+  <h3>Step 4: Set Up Your CLAUDE.md</h3>
+  <p>
+    This is the highest-leverage thing you can do. A good <code>CLAUDE.md</code>
+    means Claude follows your team's conventions automatically instead of you repeating
+    them every session.
+  </p>
+
+  <div class="card">
+    <div class="card-title">Example CLAUDE.md for a production service</div>
+    <pre># Project: payment-service
+
+## Stack
+- Go 1.22, PostgreSQL 15, Redis 7
+- Tests: go test with testify assertions
+- CI: GitHub Actions, must pass before merge
+
+## Conventions
+- All API endpoints must have OpenAPI annotations
+- Database queries use sqlc (no raw SQL strings)
+- Errors wrap with fmt.Errorf("operation: %w", err)
+- All public functions have godoc comments
+
+## Constraints
+- No direct DB access from handlers (use service layer)
+- No panics in production code (return errors)
+- Minimum 80% test coverage on new code
+- All migrations must be reversible</pre>
+  </div>
+
+  <div class="callout">
+    <strong>Pro tip:</strong> Your CLAUDE.md can also include routing rules
+    ("when I mention X, read this file first"), people context ("Ana approves deploys,
+    Josh owns the frontend"), and tool references ("use <code>make lint</code> before
+    committing"). The more context you give, the fewer corrections you'll need.
+  </div>
+
+  <h3>Step 5: Install the PRR Swarm Agent Roles</h3>
+  <p>
+    To run the PRR Swarm, you need the agent role files and the orchestration skill.
+    Download them below and drop them into your Claude Code config directory.
+  </p>
+
+  <h3>Agent Role Files</h3>
+  <p>Save these to <code>~/.claude/agents/</code> — Claude Code reads them automatically when spawning team members.</p>
+
+  <div class="download-grid">
+    <a href="agents/prr-blast-mapper.md" download class="download-link" aria-label="Download Blast Radius Mapper agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-blast-mapper.md</div>
+        <div class="dl-desc">Gate 1 — traces L2 dependencies</div>
+      </div>
+    </a>
+    <a href="agents/prr-change-classifier.md" download class="download-link" aria-label="Download Change Classifier agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-change-classifier.md</div>
+        <div class="dl-desc">Gate 1 — classifies changes, assigns risk tier</div>
+      </div>
+    </a>
+    <a href="agents/prr-sla-scanner.md" download class="download-link" aria-label="Download SLA Scanner agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-sla-scanner.md</div>
+        <div class="dl-desc">Gate 1 — maps SLA/SLO exposure</div>
+      </div>
+    </a>
+    <a href="agents/prr-rollback-strategist.md" download class="download-link" aria-label="Download Rollback Strategist agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-rollback-strategist.md</div>
+        <div class="dl-desc">Gate 2 — writes rollback procedures</div>
+      </div>
+    </a>
+    <a href="agents/prr-observability-auditor.md" download class="download-link" aria-label="Download Observability Auditor agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-observability-auditor.md</div>
+        <div class="dl-desc">Gate 2 — audits monitoring coverage</div>
+      </div>
+    </a>
+    <a href="agents/prr-failure-analyst.md" download class="download-link" aria-label="Download Failure Analyst agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-failure-analyst.md</div>
+        <div class="dl-desc">Gate 2 — FMEA with RPN scoring</div>
+      </div>
+    </a>
+    <a href="agents/prr-runbook-generator.md" download class="download-link" aria-label="Download Runbook Generator agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-runbook-generator.md</div>
+        <div class="dl-desc">Gate 3 — synthesizes operator runbook</div>
+      </div>
+    </a>
+    <a href="agents/prr-chaos-writer.md" download class="download-link" aria-label="Download Chaos Writer agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-chaos-writer.md</div>
+        <div class="dl-desc">Gate 3 — testable failure scenarios</div>
+      </div>
+    </a>
+    <a href="agents/validator.md" download class="download-link" aria-label="Download Validator agent role">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">validator.md</div>
+        <div class="dl-desc">Gate 3 — QA gate with veto authority</div>
+      </div>
+    </a>
+  </div>
+
+  <h3>Orchestration Files</h3>
+  <p>The skill definition tells Claude how to run the pipeline. The team template defines agent composition and gate dependencies.</p>
+
+  <div class="download-grid">
+    <a href="skills/prr-swarm-skill.md" download class="download-link" aria-label="Download PRR Swarm skill definition">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-swarm-skill.md</div>
+        <div class="dl-desc">Full orchestration skill — save to ~/.claude/skills/prr-swarm/SKILL.md</div>
+      </div>
+    </a>
+    <a href="skills/team-template-prr.md" download class="download-link" aria-label="Download PRR team template">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">team-template-prr.md</div>
+        <div class="dl-desc">Team composition and gate dependency map</div>
+      </div>
+    </a>
+  </div>
+
+  <h3>Quick Setup Script</h3>
+  <p>Or install everything at once:</p>
+  <pre>
+# Create the directories
+mkdir -p ~/.claude/agents
+mkdir -p ~/.claude/skills/prr-swarm
+mkdir -p ~/.claude/skills/swarm/team-templates
+
+# Download agent roles
+BASE="https://salttymalty.github.io/prr-showcase"
+for agent in prr-blast-mapper prr-change-classifier prr-sla-scanner \
+             prr-rollback-strategist prr-observability-auditor \
+             prr-failure-analyst prr-runbook-generator prr-chaos-writer \
+             validator; do
+  curl -sL "$BASE/agents/$agent.md" -o ~/.claude/agents/$agent.md
+done
+
+# Download orchestration files
+curl -sL "$BASE/skills/prr-swarm-skill.md" \
+     -o ~/.claude/skills/prr-swarm/SKILL.md
+curl -sL "$BASE/skills/team-template-prr.md" \
+     -o ~/.claude/skills/swarm/team-templates/prr.md
+
+echo "PRR Swarm installed. Run: claude then /prr-swarm"</pre>
+
+  <h3>What Happens When You Run It</h3>
+  <p>Here's the actual flow when you type <code>/prr-swarm</code> in Claude Code:</p>
+
+  <ol class="steps">
+    <li>
+      <strong>Claude captures the diff</strong>
+      <p>It runs <code>git diff main...HEAD</code> to get all changes on your branch, plus a file list and diff stats.</p>
+    </li>
+    <li>
+      <strong>Triage decides the mode</strong>
+      <p>Less than 5 files? Light mode (3 agents). 5-20 files? Standard (9 agents). Docs only? Skip entirely. No wasted compute.</p>
+    </li>
+    <li>
+      <strong>Gate 1 agents spawn in parallel</strong>
+      <p>Three read-only agents (Blast Mapper, Classifier, SLA Scanner) analyze the diff simultaneously. They finish in ~2 minutes.</p>
+    </li>
+    <li>
+      <strong>Gate 2 consumes Gate 1 findings</strong>
+      <p>Rollback Strategist, Observability Auditor, and Failure Analyst read the Gate 1 outputs and produce operational plans.</p>
+    </li>
+    <li>
+      <strong>Gate 3 synthesizes and validates</strong>
+      <p>Runbook Generator and Chaos Writer produce operator-facing artifacts. Then the Validator reviews everything and issues PASS or FAIL.</p>
+    </li>
+    <li>
+      <strong>You get 8 artifacts and a verdict</strong>
+      <p>All files land in <code>~/.claude/prr/{session-id}/</code>. The runbook is ready for your on-call engineer. The chaos scenarios are ready for your test environment.</p>
+    </li>
+  </ol>
+
+  <div class="callout">
+    <strong>Adapting this to your stack:</strong> The agent role files are plain markdown.
+    You can edit any of them to reference your specific infrastructure — your monitoring
+    tools, your deployment pipeline, your SLA definitions. The agents will use whatever
+    context you give them. Start with the defaults, then customize after your first run.
   </div>
 
   <!-- ====================================================
        AGENT INVENTORY
        ==================================================== -->
   <h2>Agent Inventory</h2>
-  <p>The full set of agents in the PRR Swarm, with their capabilities and constraints.</p>
+  <p>The full set of agents, with capabilities, constraints, and download links.</p>
 
   <table>
     <thead>
@@ -886,6 +1194,34 @@ footer {
       <tr><td>Validator</td><td>3</td><td>sonnet/opus</td><td>Read, Grep, Glob</td><td>prr-verdict.json</td></tr>
     </tbody>
   </table>
+
+  <!-- ====================================================
+       FURTHER READING
+       ==================================================== -->
+  <h2>Further Reading</h2>
+
+  <div class="concept-grid">
+    <div class="concept-item">
+      <div class="concept-name">Claude Code Docs</div>
+      <p>Official documentation for installation, configuration, permissions, and advanced features like hooks and MCP servers.</p>
+      <p><a href="https://docs.anthropic.com/en/docs/claude-code">docs.anthropic.com/en/docs/claude-code</a></p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">Agent Roles Reference</div>
+      <p>How to write agent role files — YAML frontmatter, identity anchors, tool restrictions, model tiering, and anti-patterns.</p>
+      <p><a href="https://docs.anthropic.com/en/docs/claude-code/teams">docs.anthropic.com/en/docs/claude-code/teams</a></p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">CLAUDE.md Guide</div>
+      <p>Best practices for writing project instructions that Claude follows automatically. Constraints, conventions, and routing.</p>
+      <p><a href="https://docs.anthropic.com/en/docs/claude-code/memory">docs.anthropic.com/en/docs/claude-code/memory</a></p>
+    </div>
+    <div class="concept-item">
+      <div class="concept-name">This Repo</div>
+      <p>All source files for this page, including every agent role and the orchestration skill. Clone it, fork it, adapt it.</p>
+      <p><a href="https://github.com/salttymalty/prr-showcase">github.com/salttymalty/prr-showcase</a></p>
+    </div>
+  </div>
 
   <!-- ====================================================
        FOOTER
