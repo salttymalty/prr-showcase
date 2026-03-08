@@ -1196,6 +1196,156 @@ echo "PRR Swarm installed. Run: claude then /prr-swarm"</pre>
   </table>
 
   <!-- ====================================================
+       EXAMPLE OUTPUT
+       ==================================================== -->
+  <h2>Example: What the Output Actually Looks Like</h2>
+  <p>
+    These are real example artifacts from a PRR run against a simulated change:
+    adding a <code>retry_count</code> column to a payments service. The branch
+    touches 6 files — a database migration, business logic, repository queries,
+    and the API response. Standard mode: 9 agents, 3 gates.
+  </p>
+
+  <div class="callout">
+    <strong>The scenario:</strong> Your payments service retries failed charges indefinitely.
+    This PR adds a retry cap — after 3 attempts, the payment fails permanently.
+    Sounds simple. The PRR Swarm found 2 deploy blockers the author missed.
+  </div>
+
+  <h3>Download the Full Example Artifacts</h3>
+  <div class="download-grid">
+    <a href="examples/blast-radius.md" download class="download-link" aria-label="Download example blast radius analysis">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">blast-radius.md</div>
+        <div class="dl-desc">6 changed files, 8 L1 deps, 3 L2 deps, Redis + Stripe surface</div>
+      </div>
+    </a>
+    <a href="examples/change-classification.json" download class="download-link" aria-label="Download example change classification">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">change-classification.json</div>
+        <div class="dl-desc">T3 migration, T2 logic, T1 API — entangled rollback detected</div>
+      </div>
+    </a>
+    <a href="examples/sla-exposure.md" download class="download-link" aria-label="Download example SLA exposure analysis">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">sla-exposure.md</div>
+        <div class="dl-desc">2 explicit SLOs at risk, 3 implicit SLAs, 2 dark paths</div>
+      </div>
+    </a>
+    <a href="examples/fmea-matrix.md" download class="download-link" aria-label="Download example FMEA matrix">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">fmea-matrix.md</div>
+        <div class="dl-desc">6 failure modes, 2 critical (RPN 216, 288), 1 high (168)</div>
+      </div>
+    </a>
+    <a href="examples/rollback-plan.md" download class="download-link" aria-label="Download example rollback plan">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">rollback-plan.md</div>
+        <div class="dl-desc">Ordered rollback (code first, then migration), decision matrix</div>
+      </div>
+    </a>
+    <a href="examples/runbook.md" download class="download-link" aria-label="Download example runbook">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">runbook.md</div>
+        <div class="dl-desc">TL;DR, pre-deploy checklist, deploy steps, rollback triggers, escalation</div>
+      </div>
+    </a>
+    <a href="examples/chaos-scenarios.md" download class="download-link" aria-label="Download example chaos scenarios">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">chaos-scenarios.md</div>
+        <div class="dl-desc">4 executable test scenarios with setup, trigger, pass/fail</div>
+      </div>
+    </a>
+    <a href="examples/prr-verdict.json" download class="download-link" aria-label="Download example PRR verdict">
+      <svg class="dl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+      <div>
+        <div class="dl-name">prr-verdict.json</div>
+        <div class="dl-desc">FAIL — 2 blocking issues, 3 warnings, completeness checks</div>
+      </div>
+    </a>
+  </div>
+
+  <h3>What the Swarm Caught</h3>
+  <p>The PR author thought this was a clean change — add a column, cap retries at 3, done. The swarm found:</p>
+
+  <table>
+    <thead>
+      <tr><th>Finding</th><th>Agent</th><th>Why It Matters</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>BLOCK:</strong> Migration locks table on PG &lt; 11</td>
+        <td>Failure Analyst</td>
+        <td>ADD COLUMN with DEFAULT triggers a full table rewrite on PostgreSQL 10 and below. During rewrite, the payments table is locked. All API calls queue and timeout. The migration script had no version guard.</td>
+      </tr>
+      <tr>
+        <td><strong>BLOCK:</strong> Redis cache not invalidated</td>
+        <td>Failure Analyst</td>
+        <td>After incrementing retry_count in PostgreSQL, the cached payment object in Redis still shows the old count. API reads cache first, so users see stale data for up to 5 minutes. The Chaos Writer wrote a test that proved it.</td>
+      </tr>
+      <tr>
+        <td><strong>WARN:</strong> N+1 query in retry worker</td>
+        <td>SLA Scanner + Failure Analyst</td>
+        <td>Worker reads retry_count individually per payment. At 200 payments per batch, that is 200 extra queries every 30 seconds. SLA Scanner flagged the implicit 30s tick interval; Failure Analyst scored the degradation.</td>
+      </tr>
+      <tr>
+        <td><strong>WARN:</strong> Entangled rollback order</td>
+        <td>Change Classifier</td>
+        <td>Code depends on the column existing. If you rollback the migration before the code, every payment query fails with a missing column error. Classifier flagged this and the Rollback Strategist wrote the correct order.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ====================================================
+       USE CASES
+       ==================================================== -->
+  <h2>Real-World Use Cases</h2>
+  <p>Scenarios a production assurance engineer encounters regularly, and how the PRR Swarm handles each one.</p>
+
+  <div class="card">
+    <div class="card-title">Database migration on a high-traffic table</div>
+    <p><strong>The scenario:</strong> A developer adds an index to the orders table (50M rows). They tested on a staging database with 10K rows. It took 200ms. In production, it will lock the table for 4 minutes.</p>
+    <p><strong>What the swarm finds:</strong> The Blast Mapper traces the orders table to every service that reads it. The SLA Scanner flags the p99 latency SLO. The Failure Analyst scores the lock duration against traffic volume. The Rollback Strategist writes a <code>DROP INDEX CONCURRENTLY</code> procedure. The Runbook says: run <code>CREATE INDEX CONCURRENTLY</code> instead, and includes the monitoring queries to watch during the build.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Feature flag rollout with a hidden dependency</div>
+    <p><strong>The scenario:</strong> A feature flag enables a new recommendation engine. The flag is safe to toggle — except the new engine writes to a shared cache key that the checkout service also reads. When the flag turns on, checkout starts showing recommendations instead of cart items.</p>
+    <p><strong>What the swarm finds:</strong> The Blast Mapper traces the cache key to both services. The Change Classifier flags the shared-state dependency. The Failure Analyst identifies the cache collision as a data integrity failure (Severity 8, Detection 9 — nearly invisible until a customer reports it). The Chaos Writer produces a scenario that toggles the flag and verifies checkout still renders correctly.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">API deprecation with consumers you forgot about</div>
+    <p><strong>The scenario:</strong> You deprecate <code>GET /api/v1/users/:id</code> in favor of <code>v2</code>. You notified the mobile team and the web team. You forgot about the internal reporting service that calls v1 every hour to build compliance reports.</p>
+    <p><strong>What the swarm finds:</strong> The Blast Mapper traces all callers of the v1 endpoint — including the reporting service found through grep of the endpoint URL across all repos. The SLA Scanner flags the compliance report's implicit SLA (must complete before 6am daily). The Runbook includes a pre-deploy checklist item: verify all consumers have migrated to v2.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Infrastructure change: new load balancer rules</div>
+    <p><strong>The scenario:</strong> DevOps updates the load balancer config to route <code>/api/v2/*</code> to a new service cluster. The regex is slightly wrong — it also matches <code>/api/v2-legacy/*</code>, which should stay on the old cluster.</p>
+    <p><strong>What the swarm finds:</strong> The Change Classifier identifies this as an Infrastructure change (T3 risk). The Blast Mapper traces all URL patterns that match the new regex. The Failure Analyst flags the regex ambiguity and scores it against the SLA for the v2-legacy endpoints. The Chaos Writer produces a scenario that sends requests to every matching URL pattern and verifies they route correctly.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dependency upgrade with silent behavior change</div>
+    <p><strong>The scenario:</strong> You upgrade your HTTP client library from v2.3 to v2.4. The changelog says "bug fixes." What it doesn't mention: the default timeout changed from 30s to 10s. Your slow upstream API (invoice generation, avg response 12s) starts timing out on every call.</p>
+    <p><strong>What the swarm finds:</strong> The Change Classifier flags dependency upgrades for closer inspection. The Blast Mapper traces all call sites of the HTTP client. The SLA Scanner detects the implicit 30s timeout from the old config and flags the discrepancy with the new default. The Observability Auditor checks whether timeout errors would trigger existing alerts (they would — but only after 5 minutes of accumulated errors).</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Midnight config change that nobody reviewed</div>
+    <p><strong>The scenario:</strong> An on-call engineer hotfixes a config value at 2am to stop a bleeding incident. The fix works. They push to main. The next morning, the day team deploys a new feature — the CI pipeline pulls main, which includes the unreviewed config change. The config change conflicts with the new feature.</p>
+    <p><strong>What the swarm finds:</strong> The PRR runs against the full diff from main, not just the feature branch. The Change Classifier catches the config change mixed in with the feature code. The Blast Mapper traces the config value to its consumers. The Runbook flags it: "This deploy includes a config change from commit abc1234 (hotfix by @oncall) that was not part of this feature branch. Verify compatibility before proceeding."</p>
+  </div>
+
+  <!-- ====================================================
        FURTHER READING
        ==================================================== -->
   <h2>Further Reading</h2>

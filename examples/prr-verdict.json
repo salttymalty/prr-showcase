@@ -1,0 +1,76 @@
+{
+  "session": "prr-20260308-a3f7",
+  "generated": "2026-03-08T14:45:33Z",
+  "target": "feature/add-payment-retry-column",
+  "verdict": "FAIL",
+  "risk_tier": "T2",
+
+  "blocking_issues": [
+    {
+      "id": "BLOCK-1",
+      "source": "FM-1",
+      "rpn": 216,
+      "title": "No pre-deploy PostgreSQL version check",
+      "detail": "Migration uses ADD COLUMN with DEFAULT, which is an online operation on PG11+ but causes a full table rewrite (and lock) on PG<11. No automated check exists to verify the server version before running the migration.",
+      "resolution": "Add version check to migration script or pre-deploy checklist. Recommended: `DO $$ BEGIN IF current_setting('server_version_num')::int < 110000 THEN RAISE EXCEPTION 'PostgreSQL 11+ required'; END IF; END $$;`"
+    },
+    {
+      "id": "BLOCK-2",
+      "source": "FM-3",
+      "rpn": 288,
+      "title": "Redis cache not invalidated after retry_count update",
+      "detail": "repository.go increments retry_count in PostgreSQL but does not invalidate or update the Redis cache entry. API reads from cache first, so users see stale retry_count for up to 5 minutes (cache TTL).",
+      "resolution": "Add `redis.Del(ctx, fmt.Sprintf(\"payment:%s\", id))` after the UPDATE query in repository.go. Alternatively, update the cache entry inline."
+    }
+  ],
+
+  "warnings": [
+    {
+      "id": "WARN-1",
+      "source": "FM-2",
+      "rpn": 168,
+      "title": "Retry worker uses N+1 query pattern",
+      "detail": "Worker reads retry_count individually for each payment in the batch. At 200 payments per batch, this adds ~200 queries per 30s cycle. Will degrade linearly.",
+      "recommendation": "Refactor to batch query before next release. Not blocking because current batch sizes are small enough."
+    },
+    {
+      "id": "WARN-2",
+      "source": "SLA analysis",
+      "title": "No alert threshold on retry worker cycle duration",
+      "detail": "Worker has a 30s ticker but no alert if a cycle exceeds 30s. Ticks would accumulate silently.",
+      "recommendation": "Add alert: retry_worker.cycle_duration_seconds > 25"
+    },
+    {
+      "id": "WARN-3",
+      "source": "Observability audit",
+      "title": "Retry cap has no configurable override",
+      "detail": "Retry cap is hardcoded to 3 in service.go. If the cap needs adjustment in production, it requires a code deploy.",
+      "recommendation": "Move to environment variable or feature flag for operational flexibility."
+    }
+  ],
+
+  "completeness_check": {
+    "every_file_in_blast_radius": true,
+    "every_file_classified": true,
+    "every_change_has_rollback": true,
+    "every_critical_fmea_has_chaos": true,
+    "runbook_covers_deploy_verify_rollback_escalation": true,
+    "no_placeholder_content": true
+  },
+
+  "quality_check": {
+    "rollback_has_verification_steps": true,
+    "fmea_scores_justified": true,
+    "runbook_passes_3am_rule": true,
+    "chaos_scenarios_have_pass_fail": true
+  },
+
+  "consistency_check": {
+    "classification_matches_fmea_risk": true,
+    "rollback_matches_change_types": true,
+    "runbook_references_match_outputs": true,
+    "sla_findings_reflected_in_fmea": true
+  },
+
+  "summary": "FAIL — 2 blocking issues must be resolved before deploy. Both are code changes (PG version guard + cache invalidation), not process issues. Fix these, re-run PRR on the updated branch, and expect a PASS."
+}

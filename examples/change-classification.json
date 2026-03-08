@@ -1,0 +1,83 @@
+{
+  "session": "prr-20260308-a3f7",
+  "generated": "2026-03-08T14:23:15Z",
+  "target": "feature/add-payment-retry-column",
+  "overall_risk_tier": "T2",
+
+  "changes": [
+    {
+      "file": "migrations/20260308_add_retry_count.sql",
+      "type": "Schema Migration",
+      "tier": "T3",
+      "rationale": "Adds column to high-traffic payments table. Migration is additive (ADD COLUMN with DEFAULT) so non-locking on PostgreSQL 11+, but retry_count DEFAULT 0 triggers a full table rewrite on PostgreSQL <11. Verify server version.",
+      "rollback_complexity": "medium",
+      "notes": "Column with DEFAULT is an online operation in PG11+. If PG<11, this locks the table for the duration of the rewrite."
+    },
+    {
+      "file": "internal/payments/model.go",
+      "type": "Business Logic",
+      "tier": "T1",
+      "rationale": "Struct field addition. Go struct tags match DB column. No behavior change in model itself.",
+      "rollback_complexity": "low"
+    },
+    {
+      "file": "internal/payments/service.go",
+      "type": "Business Logic",
+      "tier": "T2",
+      "rationale": "Adds retry decision logic: if retry_count >= 3, mark as failed instead of retrying. Threshold is hardcoded (not configurable). Affects payment completion rate.",
+      "rollback_complexity": "low"
+    },
+    {
+      "file": "internal/payments/repository.go",
+      "type": "Business Logic",
+      "tier": "T2",
+      "rationale": "Modified SQL queries to include retry_count in SELECT and UPDATE. Uses sqlc-generated code. INCREMENT operation uses SET retry_count = retry_count + 1 (safe for concurrent access).",
+      "rollback_complexity": "medium",
+      "notes": "Rollback requires reverting queries AND ensuring old code doesn't SELECT the new column (it won't — Go ignores unknown columns with sqlc defaults)."
+    },
+    {
+      "file": "api/handlers/payment.go",
+      "type": "API Contract",
+      "tier": "T1",
+      "rationale": "Adds retry_count to GET /api/v1/payments/:id response. Additive field — non-breaking for clients that ignore unknown fields. OpenAPI spec updated to match.",
+      "rollback_complexity": "low"
+    },
+    {
+      "file": "api/openapi/payments.yaml",
+      "type": "API Contract",
+      "tier": "T1",
+      "rationale": "Documents new field. Spec change only — no runtime impact.",
+      "rollback_complexity": "low"
+    }
+  ],
+
+  "compound_changes": [
+    {
+      "description": "Schema migration + business logic + API response",
+      "files": [
+        "migrations/20260308_add_retry_count.sql",
+        "internal/payments/service.go",
+        "api/handlers/payment.go"
+      ],
+      "entangled_rollback": true,
+      "rationale": "The service.go logic depends on the new column existing. If you rollback the migration but not the code, service.go will fail on SELECT. Must rollback in order: code first, then migration."
+    }
+  ],
+
+  "summary": {
+    "total_files": 6,
+    "by_type": {
+      "Schema Migration": 1,
+      "Business Logic": 3,
+      "API Contract": 2
+    },
+    "by_tier": {
+      "T1": 3,
+      "T2": 2,
+      "T3": 1
+    },
+    "highest_tier": "T3",
+    "entangled_rollback": true,
+    "rollback_order_matters": true
+  }
+}
